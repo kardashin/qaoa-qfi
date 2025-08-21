@@ -5,7 +5,7 @@ This repository contains the programs for our preprint [On the role of overparam
 
 ## Programs
 
-`QAOA-QFI-minimal.ipynb` contains a minimal example of our QAOA code applied to solving MAX-CUT and MAX-2-SAT problems, as well the code for calculating the quantum Fisher information matrix (rank) for the corresponding ansätze. 
+`QAOA-QFI-minimal.ipynb` contains a minimal example of our QAOA code applied to solving MAX-CUT and MAX-k-SAT problems, as well the code for calculating the quantum Fisher information matrix (rank) for the corresponding ansätze. 
 
 <br>
 
