@@ -10,35 +10,40 @@ from networkx.generators.random_graphs import erdos_renyi_graph
 import sys
 
 ### QAOA code ###
-### Thanks to Akshay Vishwanathan and Luis Ernesto Campos Espinoza! ###
+### Thanks to Akshay Vishwanathan, Luis Ernesto Campos Espinoza, and George Rafaelyan! ###
+
 
 def mixer_list(n):
-    def split(x, k):
-        return x.reshape((2**k, -1))
-    def sym_swap(x):
-        return np.asarray([x[-1], x[-2], x[1], x[0]])
-    x_list = []
-    t1 = np.asarray([arange(2**(n-1), 2**n), arange(0, 2**(n-1))])
-    t1 = t1.flatten()
-    x_list.append(t1.flatten())
-    t2 = t1.reshape(4, -1)
-    t3 = sym_swap(t2)
-    t1 = t3.flatten()
-    x_list.append(t1)
-    k = 1
-    while k < (n - 1):
-        t2 = split(t1, k)
-        t2 = np.asarray(t2)
-        t1 = []
-        for y in t2:
-            t3 = y.reshape((4, -1))
-            t4 = sym_swap(t3)
-            t1.append(t4.flatten())
-        t1 = np.asarray(t1)
-        t1 = t1.flatten()
-        x_list.append(t1)
-        k += 1        
-    return x_list
+    '''
+    Computes mixes of indices. If we want to flip qubit n then all of the pairs (with the target qubit = 0 and target qubit=1)
+    are within the 2**(n + 1) partition of the qubit string starting from the 0th index.
+    
+    For example, if we have a 2-qubit string |00> and we want to flip the first qubit, then all the possible combinations are:
+    |00>, |01>, |10>, |11>
+    The respective pairs for the flip of the first qubit are:
+    { |00>, |01> } and { |10>, |11> }
+
+    As we can see, if we divide the qubit string into partitions of 2 (that is 2**(0 + 1)). We isolate every pair. 
+    
+    Same with 3 qubits:
+    Possible combos:
+    000, 001, 010, 011, 100, 101, 110, 111
+    If we want to flip the second qubit (that has index 1):
+    {000, 010} {001, 011} {100, 110} {101, 111}
+
+    Here we also see that pair for the first element (000) is located within a partition of 2**(1+1)=4 of the string, same holds for every other element
+
+    Below is the implementation of this idea in code.
+    '''
+    arr = np.asarray(np.arange(1 << n), dtype=int) # declare array with all of the indices
+    swap = lambda arr, rt_pt: (arr[rt_pt:], arr[:rt_pt]) # function for swapping the first and last half of the partition array
+    arrs = np.zeros((n, 1 << n), dtype=int) # array to store all of the index permutations
+    # main loop
+    for i in np.arange(n):
+        # for each qubit i to flip divide array into partitions of 2**(i+1) and swap the first and the last half then flatten
+        arrs[i, :] = np.array([swap(subarr, 1 << i) for subarr in arr.reshape(-1, 1 << (i+1))]).flatten()
+    return np.flip(arrs, 0) # reverse order
+    
 
 def apply_Hx(n, x_list, statevector):
     statevector_new = zeros(len(statevector), dtype=complex)
@@ -281,3 +286,32 @@ def ksat_to_ham_diag(n, clauses):
 #         data_array = array([n, k, m, p_min, p_max, s, r, H_diag, fvals, funs, errors, nits, nfevs, times, xfs, EQD], dtype=object)
 #         np.save(path + file_name, data_array, allow_pickle=True)
 #     return None
+
+
+def _mixer_list_old_(n):
+    def split(x, k):
+        return x.reshape((2**k, -1))
+    def sym_swap(x):
+        return np.asarray([x[-1], x[-2], x[1], x[0]])
+    x_list = []
+    t1 = np.asarray([arange(2**(n-1), 2**n), arange(0, 2**(n-1))])
+    t1 = t1.flatten()
+    x_list.append(t1.flatten())
+    t2 = t1.reshape(4, -1)
+    t3 = sym_swap(t2)
+    t1 = t3.flatten()
+    x_list.append(t1)
+    k = 1
+    while k < (n - 1):
+        t2 = split(t1, k)
+        t2 = np.asarray(t2)
+        t1 = []
+        for y in t2:
+            t3 = y.reshape((4, -1))
+            t4 = sym_swap(t3)
+            t1.append(t4.flatten())
+        t1 = np.asarray(t1)
+        t1 = t1.flatten()
+        x_list.append(t1)
+        k += 1        
+    return x_list
